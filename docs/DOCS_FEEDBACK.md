@@ -45,7 +45,7 @@ The "What a grant can say" table marks `scopes` as **required: yes**, yet both
 the raw `member-delegation-update` example and the `updateMemberDelegation`
 example pass grants **without** `scopes`. The SDK confirms the table, not the
 examples: copying the doc example verbatim fails typechecking against
-`@terminal3/t3n-sdk@5.2.0`:
+`@terminal3/t3n-sdk@5.14.0`:
 
 ```text
 error TS2345: Argument of type '{ grantee: string; contract_id: string;
