@@ -1,0 +1,26 @@
+{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "Synthora Compliance Sentinel (T3N)",
+  "description": "Enterprise counterparty due-diligence agent running inside a T3N TEE. Sanctions screening (OFAC SDN/UN/OpenSanctions) and crypto due-diligence via the SYNTHORA x402 intelligence API, PII-safe deep-audit filing (officer email resolved host-side via profile placeholders), and immutable compliance briefs anchored in the T3N ledger via claims digest. Built with the T3 ADK for the Superteam Earn T3N agent build challenge.",
+  "services": [
+    {
+      "name": "A2A",
+      "endpoint": "https://api.hergertsynthora.com/a2a",
+      "version": "0.3.0"
+    },
+    {
+      "name": "DID",
+      "endpoint": "did:t3n:REPLACE_WITH_AGENT_DID",
+      "version": "v1"
+    }
+  ],
+  "x402Support": true,
+  "active": true,
+  "registrations": [
+    {
+      "agentId": 84581,
+      "agentRegistry": "eip155:8453:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
+    }
+  ],
+  "supportedTrust": ["tee-attestation"]
+}

@@ -1,0 +1,63 @@
+/// z-synthora-compliance WIT world — enterprise counterparty due diligence.
+///
+/// Imports required host capabilities:
+///   - tenant-context:        tenant DID (KV map naming), cluster timestamp, seq-no
+///   - logging:               audit-trail log lines
+///   - kv-store:              reads the `secrets` map (upstream wallet header),
+///                            writes the `briefs` map, sets the claims digest
+///   - http:                  screening calls (no PII)
+///   - http-with-placeholders: deep-audit requests that carry the compliance
+///                            officer's verified email as a `{{profile.<field>}}`
+///                            marker — resolved host-side, so that PII never
+///                            enters WASM memory.
+///
+/// All upstream calls go to the SYNTHORA x402 intelligence API
+/// (api.hergertsynthora.com). The caller's X-WALLET attribution header is
+/// stored in the z: KV map `z:<tid>:secrets` under `synthora_wallet`, seeded
+/// by the tenant SDK before first use. Egress is authorized per-call by the
+/// calling user's delegation grant (allowed_hosts), not by this contract.
+package z:synthora-compliance@0.1.0;
+
+world synthora-compliance {
+    import host:tenant/tenant-context@1.0.0;
+    import host:interfaces/logging@2.1.0;
+    import host:interfaces/kv-store@2.1.0;
+    import host:interfaces/http@2.1.0;                    // screening (no PII)
+    import host:interfaces/http-with-placeholders@2.1.0;  // deep-audit (officer PII via placeholders)
+
+    export contracts;
+}
+
+interface contracts {
+    /// Standard 3-field envelope used by all contracts callable from the node.
+    /// `input`        — JSON-serialized request payload specific to the function.
+    /// `user-profile` — always None for tenant contracts (resolved host-side).
+    /// `context`      — JSON-serialized DynamicContext (node-minted, trusted).
+    record generic-input {
+        input:        option<list<u8>>,
+        user-profile: option<list<u8>>,
+        context:      option<list<u8>>,
+    }
+
+    /// Screen a counterparty against sanctions lists (by legal name) and/or
+    /// crypto due-diligence oracles (by EVM address). Carries no PII.
+    /// Input  (JSON): { name?: string, address?: string } — at least one.
+    /// Output (JSON): { sanctions?: leg, crypto_dd?: leg, seq_no: u64 }
+    ///   leg = { status: "ok" | "payment_required" | "http_error", ... }
+    screen-counterparty: func(req: generic-input) -> result<list<u8>, string>;
+
+    /// File a deep OSINT audit request for a counterparty. The compliance
+    /// officer's verified email is templated as `{{profile.verified_contacts.email.value}}`
+    /// and resolved by the host at dispatch time — it never enters WASM memory.
+    /// Input  (JSON): { subject: string, type: "person" | "company" | "domain" | "username" }
+    /// Output (JSON): { http_code: u16, status: string }
+    request-deep-audit: func(req: generic-input) -> result<list<u8>, string>;
+
+    /// Compile screening + deep-audit results into an immutable compliance
+    /// brief stored in `z:<tid>:briefs`, and anchor it in the tx Merkle leaf
+    /// via kv-store.set-claims-digest(SHA-256(brief)) so callers can verify
+    /// the brief offline against their receipt.
+    /// Input  (JSON): { counterparty: string, screening: any, deep_audit?: any }
+    /// Output (JSON): { brief_id: string, claims_digest: string, seq_no: u64 }
+    compile-brief: func(req: generic-input) -> result<list<u8>, string>;
+}

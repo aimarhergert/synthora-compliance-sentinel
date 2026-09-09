@@ -1,0 +1,19 @@
+{
+  "name": "synthora-t3n-compliance-app",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Tenant/agent orchestrator for the z-synthora-compliance TEE contract on T3N testnet",
+  "scripts": {
+    "run": "tsx src/run.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@terminal3/t3n-sdk": "^5.2.0",
+    "tsx": "^4.19.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^20.0.0"
+  }
+}
