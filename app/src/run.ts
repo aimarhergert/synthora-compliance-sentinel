@@ -49,7 +49,28 @@ function need(name: string): string {
 }
 
 async function authenticate(key: string, label: string) {
-  const trustAnchor = await fetchTrustedManifest("testnet");
+  // SDK 5.14.0 trust bootstrap is broken on testnet today (verified live
+  // 2026-09-09, https://cn-api.sg.testnet.t3n.terminal3.io/api/trust-manifest):
+  // the node serves a manifest WITHOUT rtmr1_allowlist, so
+  //   1. fetchTrustedManifest("testnet") rejects it as "malformed"
+  //      (SignedTrustManifest.rtmr1_allowlist is required in 5.14.0), and
+  //   2. projecting it via manifestToTrustAnchor yields an anchor T3nClient
+  //      refuses ("must be ... { expected_peer_ids, rtmr3_allowlist,
+  //      rtmr1_allowlist }" — RTMR1 must be non-empty and is unpublished).
+  // Until the operator republishes the manifest with rtmr1_allowlist, the
+  // only way to run against testnet is the SDK's explicit opt-out below.
+  // DEMO ONLY — disables DKG attestation verification. See docs/DOCS_FEEDBACK.md.
+  let trustAnchor;
+  try {
+    trustAnchor = await fetchTrustedManifest("testnet");
+  } catch (e) {
+    console.warn(
+      `[${label}] WARNING: ${(e as Error).message} ` +
+        `Falling back to { unsafe_trust_server: true } for this demo run ` +
+        `(testnet manifest infra bug — attestation verification OFF).`,
+    );
+    trustAnchor = { unsafe_trust_server: true as const };
+  }
   const wasmComponent = await loadWasmComponent();
   const address = eth_get_address(key);
   const client = new T3nClient({

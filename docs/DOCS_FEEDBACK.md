@@ -57,9 +57,35 @@ assignable to parameter of type 'BoundGrant'.
 So the examples as written do not compile. Please add `scopes` to the examples
 (`scopes: []` works for function+egress-only grants like ours).
 
+### 4. Testnet trust-manifest is not usable with SDK 5.14.0 (verified live)
+
+`fetchTrustedManifest("testnet")` throws
+`Trust manifest at https://cn-api.sg.testnet.t3n.terminal3.io/api/trust-manifest is malformed.`
+The node serves a manifest **without `rtmr1_allowlist`**, which
+`SignedTrustManifest` (5.14.0) requires. There is no workaround through the
+documented API: projecting the same manifest with `manifestToTrustAnchor`
+yields an anchor that `T3nClient` then rejects
+(`trustAnchor ... must be ... { expected_peer_ids, rtmr3_allowlist, rtmr1_allowlist }`,
+and RTMR1 "must be non-empty" — but the values are unpublished). Every
+quickstart that follows the docs verbatim therefore cannot handshake against
+testnet at all. Until the operator republishes the manifest with
+`rtmr1_allowlist`, the only way to run is the explicit
+`{ unsafe_trust_server: true }` opt-out (attestation verification OFF — we
+used it for our demo run and flagged it loudly in the output). Verified
+2026-09-09 ~19:55 UTC from a fresh client; raw manifest body:
+
+```json
+{"cluster":"testnet","version":1787800421,"peer_ids":["QmPk4Atb…","QmQBh7yA…","QmSGy7Lg…"],
+ "rtmr3_allowlist":["+XO6nLsf…"],"signed_at":"2026-08-27T03:13:41Z","signature":"387384a9…"}
+```
+
+Related: on Node 18 the SDK also needs `--experimental-global-webcrypto`
+(`Error: Crypto API is not available in Node.js 18.19.1` during handshake) —
+worth stating the supported Node range in the quickstart prerequisites.
+
 ## Rough edges (feedback, not bugs)
 
-### 4. No API to recover a tail's `contract_id` after re-registration
+### 5. No API to recover a tail's `contract_id` after re-registration
 
 `register-contract.md` warns about this itself. We hit the design constraint
 while scripting redeploys: the only `contract_id` source is the register
@@ -67,7 +93,7 @@ response, so automation must persist it or map ACLs go stale. A read-only
 `contracts.list` / `contracts.get(tail)` on `TenantClient` would make
 redeploys idempotent.
 
-### 5. Multi-agent onboarding needs N interactive SSO claims
+### 6. Multi-agent onboarding needs N interactive SSO claims
 
 Quickstart + Register a Public Agent + Member Delegation together require
 **three** separately-claimed keys (tenant, agent, user), each via an
@@ -76,7 +102,7 @@ for a human tutorial but painful for scripted/agentic setups. A CLI
 (`t3n keygen` + testnet faucet, or tenant→agent credit transfer) would help;
 noting the docs already say there is no `t3n keygen`.
 
-### 6. WASM/bundler warning is accurate — plain Node works
+### 7. WASM/bundler warning is accurate — plain Node works
 
 We heeded the Next.js/Vite/WASM warning and ran everything from a plain
 Node + tsx script: `loadWasmComponent()` worked first try on Node 18.19.1.
@@ -85,7 +111,7 @@ runner used) as the known-good path. (npm prints an `EBADENGINE` warning for
 `@terminal3/t3n-sdk` on Node 18 — worth stating the supported Node range in
 the quickstart prerequisites.)
 
-### 7. `cargo test` in the contract crate tries to execute the WASM binary
+### 8. `cargo test` in the contract crate tries to execute the WASM binary
 
 The reference crate's `.cargo/config.toml` pins `build.target =
 wasm32-wasip2`, so `cargo test` builds the test binary as WASM and then fails
